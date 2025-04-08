@@ -3,6 +3,7 @@
 #include "GSR.h"
 #include "PPG.h"
 #include "mqtt.h"
+#include "aliiot.c"
 
 #define USER_UART UART_NUM_0
 #define TAG_UART "uart0"
@@ -38,7 +39,7 @@ void app_main(void)
     uart_driver_install(USER_UART, 1024, 1024, 20, &queueUART, 0);
 
     mqtt_init();
-    mqtt_start();
+    aliiot_start();
     vTaskDelay(pdMS_TO_TICKS(2000));
 
     while (1)
@@ -58,7 +59,7 @@ void app_main(void)
         snprintf(spO2Data, sizeof(spO2Data), "%.2f\n", spO2);
         if (spO2 != 1.15f)
         {
-            esp_mqtt_client_publish(mqtt_handle, MQTT_TOPIC1, spO2Data, strlen(spO2Data), 1, 0);
+            // esp_mqtt_client_publish(mqtt_handle, MQTT_TOPIC1, spO2Data, strlen(spO2Data), 1, 0);
         }
 
         vTaskDelay(1);
