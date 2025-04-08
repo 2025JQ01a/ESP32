@@ -11,5 +11,14 @@
 #define ALIIOT_MQTT_URL "mqtts://iot-06z00gckmuw74xc.mqtt.iothub.aliyuncs.com"
 
 void aliiot_start(void);
+char isAliiotConnected(void);
+
+/**
+ * 上报单个属性值（整形）
+ * @param name 属性值名字
+ * @param value 值
+ * @return 无
+ */
+void aliot_post_property_int(const char *name, int value);
 
 #endif

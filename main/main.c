@@ -3,7 +3,8 @@
 #include "GSR.h"
 #include "PPG.h"
 #include "mqtt.h"
-#include "aliiot.c"
+#include "aliiot.h"
+#include "aliiot_dm.h"
 
 #define USER_UART UART_NUM_0
 #define TAG_UART "uart0"
@@ -12,6 +13,7 @@ static char bufUART[10];
 static char tempData[10];
 static char spO2Data[30];
 static QueueHandle_t queueUART;
+uint32_t count = 0;
 
 void app_main(void)
 {
@@ -61,34 +63,39 @@ void app_main(void)
         {
             // esp_mqtt_client_publish(mqtt_handle, MQTT_TOPIC1, spO2Data, strlen(spO2Data), 1, 0);
         }
-
-        vTaskDelay(1);
-
-        if (xQueueReceive(queueUART, &evUART, 1) == pdTRUE)
+        if (isAliiotConnected())
         {
-
-            switch (evUART.type)
-            {
-
-            case UART_DATA:
-
-                ESP_LOGI(TAG_UART, "UART0 Receive length: %i", evUART.size);
-                uart_read_bytes(USER_UART, bufUART, evUART.size, pdMS_TO_TICKS(1000));
-                uart_write_bytes(USER_UART, bufUART, evUART.size);
-                break;
-            case UART_BUFFER_FULL:
-
-                uart_flush_input(USER_UART);
-                xQueueReset(queueUART);
-                break;
-            case UART_FIFO_OVF:
-
-                uart_flush_input(USER_UART);
-                xQueueReset(queueUART);
-                break;
-            default:
-                break;
-            }
+            // aliot_post_property_int("Testing", count);
         }
+
+        count++;
+        vTaskDelay(1000);
+
+        // if (xQueueReceive(queueUART, &evUART, 1) == pdTRUE)
+        // {
+
+        //     switch (evUART.type)
+        //     {
+
+        //     case UART_DATA:
+
+        //         ESP_LOGI(TAG_UART, "UART0 Receive length: %i", evUART.size);
+        //         uart_read_bytes(USER_UART, bufUART, evUART.size, pdMS_TO_TICKS(1000));
+        //         uart_write_bytes(USER_UART, bufUART, evUART.size);
+        //         break;
+        //     case UART_BUFFER_FULL:
+
+        //         uart_flush_input(USER_UART);
+        //         xQueueReset(queueUART);
+        //         break;
+        //     case UART_FIFO_OVF:
+
+        //         uart_flush_input(USER_UART);
+        //         xQueueReset(queueUART);
+        //         break;
+        //     default:
+        //         break;
+        //     }
+        // }
     }
 }

@@ -21,6 +21,12 @@
         "gpio.h": "c",
         "ppg.h": "c",
         "i2c.h": "c",
-        "mqtt.h": "c"
+        "mqtt.h": "c",
+        "string.h": "c",
+        "aliiot_dm.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "random": "c"
     }
 }

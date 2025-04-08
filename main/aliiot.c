@@ -1,4 +1,5 @@
 #include "aliiot.h"
+#include "aliiot_dm.h"
 #include "esp_log.h"
 #include "mqtt_client.h"
 #include "mbedtls/md5.h"
@@ -10,6 +11,7 @@
 
 esp_mqtt_client_handle_t mqtt_handle_aliiot = NULL;
 extern const char *g_aliot_ca;
+static char s_is_aliiot_connected = 0;
 
 char *getClientID(void)
 {
@@ -54,19 +56,38 @@ void core_hex2str(uint8_t *input, uint32_t input_len, char *output, uint8_t lowe
     output[j] = 0;
 }
 
+/**
+ * 返回属性设置确认
+ * @param code 错误码
+ * @param message 信息
+ * @return mqtt连接参数
+ */
+static void aliot_property_ack(int code, const char *message)
+{
+    char topic[128];
+    ALIOT_DM_DES *dm_des = aliot_malloc_dm(ALIOT_DM_SET_ACK);
+    aliot_set_property_ack(dm_des, code, message);
+    aliot_dm_serialize(dm_des);
+    snprintf(topic, sizeof(topic), "/sys/%s/%s/thing/service/property/set_reply", ALIIOT_PRODUCTKEY, ALIIOT_DEVICENAME);
+    esp_mqtt_client_publish(mqtt_handle_aliiot, topic, dm_des->dm_js_str, dm_des->data_len, 1, 0);
+    aliot_free_dm(dm_des);
+}
+
 void mqtt_aliiot_event_callback(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
 
-    esp_mqtt_event_handle_t receivedData = (esp_mqtt_event_handle_t)event_data;
+    esp_mqtt_event_handle_t receivedData = event_data;
 
     switch (event_id)
     {
 
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG_ALIIOT, "aliiot mqtt connected");
+        s_is_aliiot_connected = 1;
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG_ALIIOT, "aliiot mqtt disconnected");
+        s_is_aliiot_connected = 0;
         break;
     case MQTT_EVENT_PUBLISHED:
         ESP_LOGI(TAG_ALIIOT, "aliiot mqtt received publish ack");
@@ -75,8 +96,23 @@ void mqtt_aliiot_event_callback(void *event_handler_arg, esp_event_base_t event_
         ESP_LOGI(TAG_ALIIOT, "aliiot mqtt received subscribe ack");
         break;
     case MQTT_EVENT_DATA:
-        ESP_LOGI(TAG_ALIIOT, "topic->%s", receivedData->topic);
-        ESP_LOGI(TAG_ALIIOT, "payload->%s", receivedData->data);
+        ESP_LOGI(TAG_ALIIOT, "TOPIC=%.*s\r\n", receivedData->topic_len, receivedData->topic);
+        ESP_LOGI(TAG_ALIIOT, "DATA=%.*s\r\n", receivedData->data_len, receivedData->data);
+        if (strstr(receivedData->topic, "/property/set"))
+        {
+            cJSON *property_js = cJSON_Parse(receivedData->data);
+            cJSON *params_js = cJSON_GetObjectItem(property_js, "params");
+            if (params_js)
+            {
+                cJSON *testing_js = cJSON_GetObjectItem(params_js, "Testing");
+                if (testing_js)
+                {
+                    int value = cJSON_GetNumberValue(testing_js);
+                    ESP_LOGI(TAG_ALIIOT, "%d\n", value);
+                }
+            }
+            aliot_property_ack(200, "success");
+        }
         break;
     default:
         break;
@@ -116,6 +152,31 @@ void aliiot_start(void)
     mqtt_handle_aliiot = esp_mqtt_client_init(&cfg_mqtt);
     esp_mqtt_client_register_event(mqtt_handle_aliiot, ESP_EVENT_ANY_ID, mqtt_aliiot_event_callback, NULL);
     esp_mqtt_client_start(mqtt_handle_aliiot);
+}
+
+char isAliiotConnected(void)
+{
+    return s_is_aliiot_connected;
+}
+
+/**
+ * 上报单个属性值（整形）
+ * @param name 属性值名字
+ * @param value 值
+ * @return 无
+ */
+void aliot_post_property_int(const char *name, int value)
+{
+    if (!s_is_aliiot_connected)
+        return;
+    char topic[128];
+    ALIOT_DM_DES *dm_des = aliot_malloc_dm(ALIOT_DM_POST);
+    aliot_set_dm_int(dm_des, name, value);
+    aliot_dm_serialize(dm_des);
+    snprintf(topic, sizeof(topic), "/sys/%s/%s/thing/event/property/post",
+             ALIIOT_PRODUCTKEY, ALIIOT_DEVICENAME);
+    esp_mqtt_client_publish(mqtt_handle_aliiot, topic, dm_des->dm_js_str, dm_des->data_len, 1, 0);
+    aliot_free_dm(dm_des);
 }
 
 // 根证书
