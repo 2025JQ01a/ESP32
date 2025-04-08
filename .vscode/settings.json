@@ -16,6 +16,10 @@
     "idf.toolsPathWin": "E:\\Espressif",
     "idf.flashType": "UART",
     "files.associations": {
-        "tskin.h": "c"
+        "tskin.h": "c",
+        "esp_err.h": "c",
+        "gpio.h": "c",
+        "ppg.h": "c",
+        "i2c.h": "c"
     }
 }
