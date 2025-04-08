@@ -105,20 +105,20 @@ void max30102_fifo_read(float *output_data)
 float max30102_getSpO2(void)
 {
     max30102_fifo_read(max30102_data);
-    ESP_LOGI(TAG, "IR: %f, RED: %f", max30102_data[0], max30102_data[1]);
+    // ESP_LOGI(TAG, "IR: %f, RED: %f", max30102_data[0], max30102_data[1]);
     if ((max30102_data[0] > PPG_DATA_THRESHOLD) && (max30102_data[1] > PPG_DATA_THRESHOLD)) // 大于阈值，说明传感器有接触
     {
         ppg_data_cache_IR[cache_counter] = max30102_data[0];
         ppg_data_cache_RED[cache_counter] = max30102_data[1];
         cache_counter++;
-        ESP_LOGI(TAG, "reach, %d", cache_counter);
+        // ESP_LOGI(TAG, "reach, %d", cache_counter);
     }
     else // 小于阈值
     {
         cache_counter = 0;
-        ESP_LOGI(TAG, "not reach, %d", cache_counter);
+        // ESP_LOGI(TAG, "not reach, %d", cache_counter);
     }
-    ESP_LOGI(TAG, "then, %d", cache_counter);
+    // ESP_LOGI(TAG, "then, %d", cache_counter);
     if (cache_counter >= CACHE_NUMS) // 收集满了数据
     {
         float ir_max = *ppg_data_cache_IR, ir_min = *ppg_data_cache_IR;
