@@ -1,2 +1,2 @@
-idf_component_register(SRCS "aliiot_dm.c" "aliiot.c" "mqtt.c" "PPG.c" "GSR.c" "ECG.c" "TSkin.c" "main.c"
+idf_component_register(SRCS "aliiot_dm.c" "aliiot.c" "mqtt.c" "PPG.c" "GSR.c" "ECG.c" "TSkin.c" "main.c" "computeFFT_data.c" "computeFFT_initialize.c" "computeFFT_terminate.c" "computeFFT.c" "FFTImplementationCallback.c"
                     INCLUDE_DIRS ".")

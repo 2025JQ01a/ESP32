@@ -27,6 +27,8 @@
         "array": "c",
         "string": "c",
         "string_view": "c",
-        "random": "c"
+        "random": "c",
+        "aliiot.h": "c",
+        "computefft.h": "c"
     }
 }

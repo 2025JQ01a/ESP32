@@ -1,3 +1,6 @@
+#include "esp_log.h"
+#include <math.h>
+
 #include "TSkin.h"
 #include "ECG.h"
 #include "GSR.h"
@@ -5,9 +8,11 @@
 #include "mqtt.h"
 #include "aliiot.h"
 #include "aliiot_dm.h"
+#include "computeFFT.h"
 
 #define USER_UART UART_NUM_0
 #define TAG_UART "uart0"
+#define TAG_MAIN "main"
 
 static char bufUART[10];
 static char tempData[10];
@@ -15,8 +20,31 @@ static char spO2Data[30];
 static QueueHandle_t queueUART;
 uint32_t count = 0;
 
+static double signal_data[200] = {0}; // 输入信号数据
+static creal_T fft_result[200] = {0}; // 存储 FFT 结果
+
 void app_main(void)
 {
+    // 填充示例信号数据（例如：正弦波）
+    for (int i = 0; i < 200; i++)
+    {
+        signal_data[i] = sin(2 * M_PI * i / 200); // 示例信号
+    }
+
+    for (int i = 0; i < 200; i++)
+    {
+        ESP_LOGI(TAG_MAIN, "input:%.2f", signal_data[i]);
+    }
+
+    // // 调用 computeFFT 函数
+    computeFFT(signal_data, fft_result);
+
+    // 输出 FFT 结果
+    for (int i = 0; i < 200; i++)
+    {
+        ESP_LOGI(TAG_MAIN, "Y[%d] = %.2f + %.2fi\n", i, fft_result[i].re, fft_result[i].im);
+    }
+
     temp_ntc_init();
 
     PPG_cfg_t PPG_config;
