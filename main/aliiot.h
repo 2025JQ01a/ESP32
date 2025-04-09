@@ -21,4 +21,12 @@ char isAliiotConnected(void);
  */
 void aliot_post_property_int(const char *name, int value);
 
+/**
+ * 上报单个属性值（浮点）
+ * @param name 属性值名字
+ * @param value 值
+ * @return 无
+ */
+void aliot_post_property_double(const char *name, double value);
+
 #endif

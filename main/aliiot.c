@@ -98,13 +98,13 @@ void mqtt_aliiot_event_callback(void *event_handler_arg, esp_event_base_t event_
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG_ALIIOT, "TOPIC=%.*s\r\n", receivedData->topic_len, receivedData->topic);
         ESP_LOGI(TAG_ALIIOT, "DATA=%.*s\r\n", receivedData->data_len, receivedData->data);
-        if (strstr(receivedData->topic, "/property/set"))
+        if (strstr(receivedData->topic, "/user/get"))
         {
             cJSON *property_js = cJSON_Parse(receivedData->data);
             cJSON *params_js = cJSON_GetObjectItem(property_js, "params");
             if (params_js)
             {
-                cJSON *testing_js = cJSON_GetObjectItem(params_js, "Testing");
+                cJSON *testing_js = cJSON_GetObjectItem(params_js, "Command_ECG");
                 if (testing_js)
                 {
                     int value = cJSON_GetNumberValue(testing_js);
@@ -176,6 +176,27 @@ void aliot_post_property_int(const char *name, int value)
     snprintf(topic, sizeof(topic), "/sys/%s/%s/thing/event/property/post",
              ALIIOT_PRODUCTKEY, ALIIOT_DEVICENAME);
     esp_mqtt_client_publish(mqtt_handle_aliiot, topic, dm_des->dm_js_str, dm_des->data_len, 1, 0);
+    aliot_free_dm(dm_des);
+}
+
+/**
+ * 上报单个属性值（浮点）
+ * @param name 属性值名字
+ * @param value 值
+ * @return 无
+ */
+void aliot_post_property_double(const char *name, double value)
+{
+    if (!s_is_aliiot_connected)
+        return;
+    char topic[128];
+    ALIOT_DM_DES *dm_des = aliot_malloc_dm(ALIOT_DM_POST);
+    aliot_set_dm_double(dm_des, name, value);
+    aliot_dm_serialize(dm_des);
+    snprintf(topic, sizeof(topic), "/sys/%s/%s/thing/event/property/post",
+             ALIIOT_PRODUCTKEY, ALIIOT_DEVICENAME);
+    esp_mqtt_client_publish(mqtt_handle_aliiot, topic, dm_des->dm_js_str, dm_des->data_len, 1, 0);
+    // esp_mqtt_client_publish(mqtt_handle_aliiot, topic, 0xA5A5A5A5, sizeof(0xA5A5A5A5), 1, 0);
     aliot_free_dm(dm_des);
 }
 

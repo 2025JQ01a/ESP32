@@ -61,6 +61,31 @@ void aliot_set_dm_int(ALIOT_DM_DES *dm, const char *name, int value)
 }
 
 /**
+ * 往物模型(dm)里面添加一浮点值
+ * @param dm 物模型结构体
+ * @param name 属性名字
+ * @param value 值
+ * @return 无
+ */
+void aliot_set_dm_double(ALIOT_DM_DES *dm, const char *name, double value)
+{
+    if (dm)
+    {
+        cJSON *param_js = cJSON_GetObjectItem(dm->dm_js, "params");
+        if (param_js)
+        {
+#ifdef DM_INCLUDE_TIMESTAMP
+            cJSON *name_js = cJSON_AddObjectToObject(param_js, name);
+            cJSON_AddNumberToObject(name_js, "value", value);
+            cJSON_AddNumberToObject(name_js, "time", time(0) * 1000ull);
+#else
+            cJSON_AddNumberToObject(param_js, name, value);
+#endif
+        }
+    }
+}
+
+/**
  * 生成字符串保存在dm->dm_js_str
  * @param dm 无
  * @return 无

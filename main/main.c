@@ -10,40 +10,77 @@
 #include "aliiot_dm.h"
 #include "computeFFT.h"
 
+// for UART debugging, not used
+/*
 #define USER_UART UART_NUM_0
 #define TAG_UART "uart0"
-#define TAG_MAIN "main"
-
 static char bufUART[10];
-static char tempData[10];
-static char spO2Data[30];
 static QueueHandle_t queueUART;
+*/
+
+// debugging data
 uint32_t count = 0;
 
+// for MATLAB algo testing
+/*
 static double signal_data[200] = {0}; // 输入信号数据
 static creal_T fft_result[200] = {0}; // 存储 FFT 结果
+*/
+
+#define TAG_MAIN "main"
+
+static uint8_t temp_cmd = 0;
+static uint8_t spO2_cmd = 0;
+static uint8_t ECG_cmd = 0;
+static uint8_t GSR_cmd = 0;
+
+static char temp_data[30];
+static char spO2_data[30];
+static char ECG_data[30];
+static char GSR_data[30];
+
+static float currentTemprature;
+static float spO2;
 
 void app_main(void)
 {
+    // for MATLAB algo testing
+    /*
     // 填充示例信号数据（例如：正弦波）
     for (int i = 0; i < 200; i++)
     {
         signal_data[i] = sin(2 * M_PI * i / 200); // 示例信号
     }
-
     for (int i = 0; i < 200; i++)
     {
         ESP_LOGI(TAG_MAIN, "input:%.2f", signal_data[i]);
     }
-
-    // // 调用 computeFFT 函数
+    // 调用 computeFFT 函数
     computeFFT(signal_data, fft_result);
-
     // 输出 FFT 结果
     for (int i = 0; i < 200; i++)
     {
         ESP_LOGI(TAG_MAIN, "Y[%d] = %.2f + %.2fi\n", i, fft_result[i].re, fft_result[i].im);
     }
+    */
+
+    // for UART debugging, not used
+    /*
+        uart_event_t evUART;
+        int resultUART;
+        uart_config_t cfg_uart =
+            {
+                .baud_rate = 115200,
+                .data_bits = UART_DATA_8_BITS,
+                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .parity = UART_PARITY_DISABLE,
+                .source_clk = UART_SCLK_DEFAULT,
+                .stop_bits = UART_STOP_BITS_1,
+            };
+        uart_param_config(USER_UART, &cfg_uart);
+        uart_set_pin(USER_UART, GPIO_NUM_32, GPIO_NUM_33, -1, -1);
+        uart_driver_install(USER_UART, 1024, 1024, 20, &queueUART, 0);
+    */
 
     temp_ntc_init();
 
@@ -53,77 +90,78 @@ void app_main(void)
     PPG_config.fre = 400000;
     PPG_init(&PPG_config);
 
-    uart_event_t evUART;
-    int resultUART;
-    uart_config_t cfg_uart =
-        {
-            .baud_rate = 115200,
-            .data_bits = UART_DATA_8_BITS,
-            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-            .parity = UART_PARITY_DISABLE,
-            .source_clk = UART_SCLK_DEFAULT,
-            .stop_bits = UART_STOP_BITS_1,
-        };
-    uart_param_config(USER_UART, &cfg_uart);
-    uart_set_pin(USER_UART, GPIO_NUM_32, GPIO_NUM_33, -1, -1);
-    uart_driver_install(USER_UART, 1024, 1024, 20, &queueUART, 0);
-
     mqtt_init();
     aliiot_start();
+    // mqtt_start();
     vTaskDelay(pdMS_TO_TICKS(2000));
 
     while (1)
     {
 
-        // print temperature to serial port
-        static float currentTemprature;
-        currentTemprature = get_temp();
-        // uart_write_bytes(USER_UART, bufUART, 100);
-        snprintf(tempData, sizeof(tempData), "%f\n", currentTemprature);
+        // for UART debugging, not used
+        /*
+        uart_write_bytes(USER_UART, bufUART, 100);
+        */
 
-        // uint8_t spO2[1];
-        // i2c_read(MAX30102_ADDR, FIFO_DATA, 1, spO2);
-        // snprintf(spO2Data, sizeof(spO2Data), "%d\n", spO2[0]);
-        static float spO2;
-        spO2 = max30102_getSpO2();
-        snprintf(spO2Data, sizeof(spO2Data), "%.2f\n", spO2);
-        if (spO2 != 1.15f)
+        if (temp_cmd)
         {
-            // esp_mqtt_client_publish(mqtt_handle, MQTT_TOPIC1, spO2Data, strlen(spO2Data), 1, 0);
+            currentTemprature = get_temp();
         }
+        else
+        {
+            currentTemprature = 0;
+        }
+        snprintf(temp_data, sizeof(temp_data), "%f\n", currentTemprature);
+
+        // if (spO2_cmd)
+        // {
+        spO2 = max30102_getSpO2();
+        // }
+        // else
+        // {
+        //     spO2 = 0;
+        // }
+        snprintf(spO2_data, sizeof(spO2_data), "%.2f\n", spO2);
+
         if (isAliiotConnected())
         {
-            // aliot_post_property_int("Testing", count);
+            if (spO2 != 1.15f)
+            {
+                aliot_post_property_double("Value_PPG", spO2);
+            }
         }
 
         count++;
-        vTaskDelay(1000);
+        vTaskDelay(5);
 
-        // if (xQueueReceive(queueUART, &evUART, 1) == pdTRUE)
-        // {
+        // for UART debugging, not used
+        /*
+        if (xQueueReceive(queueUART, &evUART, 1) == pdTRUE)
+        {
 
-        //     switch (evUART.type)
-        //     {
+            switch (evUART.type)
+            {
 
-        //     case UART_DATA:
+            case UART_DATA:
 
-        //         ESP_LOGI(TAG_UART, "UART0 Receive length: %i", evUART.size);
-        //         uart_read_bytes(USER_UART, bufUART, evUART.size, pdMS_TO_TICKS(1000));
-        //         uart_write_bytes(USER_UART, bufUART, evUART.size);
-        //         break;
-        //     case UART_BUFFER_FULL:
+                ESP_LOGI(TAG_UART, "UART0 Receive length: %i", evUART.size);
+                uart_read_bytes(USER_UART, bufUART, evUART.size, pdMS_TO_TICKS(1000));
+                uart_write_bytes(USER_UART, bufUART, evUART.size);
+                break;
+            case UART_BUFFER_FULL:
 
-        //         uart_flush_input(USER_UART);
-        //         xQueueReset(queueUART);
-        //         break;
-        //     case UART_FIFO_OVF:
+                uart_flush_input(USER_UART);
+                xQueueReset(queueUART);
+                break;
+            case UART_FIFO_OVF:
 
-        //         uart_flush_input(USER_UART);
-        //         xQueueReset(queueUART);
-        //         break;
-        //     default:
-        //         break;
-        //     }
-        // }
+                uart_flush_input(USER_UART);
+                xQueueReset(queueUART);
+                break;
+            default:
+                break;
+            }
+        }
+        */
     }
 }

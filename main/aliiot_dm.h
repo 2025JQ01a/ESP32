@@ -39,6 +39,15 @@ ALIOT_DM_DES *aliot_malloc_dm(ALIOT_DM_TYPE dm_type);
 void aliot_set_dm_int(ALIOT_DM_DES *dm, const char *name, int value);
 
 /**
+ * 往物模型(dm)里面添加一浮点值
+ * @param dm 物模型结构体
+ * @param name 属性名字
+ * @param value 值
+ * @return 无
+ */
+void aliot_set_dm_double(ALIOT_DM_DES *dm, const char *name, double value);
+
+/**
  * 生成字符串保存在dm->dm_js_str
  * @param dm 无
  * @return 无
