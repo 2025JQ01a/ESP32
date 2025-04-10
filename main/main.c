@@ -29,10 +29,7 @@ static creal_T fft_result[200] = {0}; // 存储 FFT 结果
 
 #define TAG_MAIN "main"
 
-static uint8_t temp_cmd = 0;
-static uint8_t spO2_cmd = 0;
-static uint8_t ECG_cmd = 0;
-static uint8_t GSR_cmd = 0;
+static uint32_t counter_transmit = 0;
 
 static char temp_data[30];
 static char spO2_data[30];
@@ -41,6 +38,7 @@ static char GSR_data[30];
 
 static float currentTemprature;
 static float spO2;
+static float spO2_recorded;
 
 void app_main(void)
 {
@@ -97,6 +95,7 @@ void app_main(void)
 
     while (1)
     {
+        TickType_t xLastWakeTime = xTaskGetTickCount();
 
         // for UART debugging, not used
         /*
@@ -113,26 +112,37 @@ void app_main(void)
         }
         snprintf(temp_data, sizeof(temp_data), "%f\n", currentTemprature);
 
-        // if (spO2_cmd)
-        // {
-        spO2 = max30102_getSpO2();
-        // }
-        // else
-        // {
-        //     spO2 = 0;
-        // }
+        if (spO2_cmd)
+        {
+            spO2 = max30102_getSpO2();
+        }
+        else
+        {
+            spO2 = 0;
+        }
+        if (spO2 != 0)
+        {
+            spO2_recorded = spO2;
+        }
         snprintf(spO2_data, sizeof(spO2_data), "%.2f\n", spO2);
 
-        if (isAliiotConnected())
+        if (isAliiotConnected() && (counter_transmit >= 400))
         {
-            if (spO2 != 1.15f)
+            aliot_post_property_int("Testing", 0);
+            if (spO2_recorded != 0)
             {
-                aliot_post_property_double("Value_PPG", spO2);
+                aliot_post_property_double("Value_PPG", spO2_recorded);
             }
+            if (currentTemprature != 0)
+            {
+                aliot_post_property_double("Value_Temp", currentTemprature);
+            }
+
+            counter_transmit = 0;
         }
 
-        count++;
-        vTaskDelay(5);
+        counter_transmit++;
+        vTaskDelayUntil(&xLastWakeTime, 5);
 
         // for UART debugging, not used
         /*

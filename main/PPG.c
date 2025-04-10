@@ -151,6 +151,6 @@ float max30102_getSpO2(void)
     }
     else
     {
-        return 1.15f;
+        return 0;
     }
 }

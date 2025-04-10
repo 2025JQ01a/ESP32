@@ -9,6 +9,11 @@
 
 #define TAG_ALIIOT "aliiot"
 
+char temp_cmd = 0;
+char spO2_cmd = 0;
+char ECG_cmd = 0;
+char GSR_cmd = 0;
+
 esp_mqtt_client_handle_t mqtt_handle_aliiot = NULL;
 extern const char *g_aliot_ca;
 static char s_is_aliiot_connected = 0;
@@ -88,6 +93,7 @@ void mqtt_aliiot_event_callback(void *event_handler_arg, esp_event_base_t event_
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG_ALIIOT, "aliiot mqtt disconnected");
         s_is_aliiot_connected = 0;
+        // esp_mqtt_client_start(mqtt_handle_aliiot);
         break;
     case MQTT_EVENT_PUBLISHED:
         ESP_LOGI(TAG_ALIIOT, "aliiot mqtt received publish ack");
@@ -98,17 +104,39 @@ void mqtt_aliiot_event_callback(void *event_handler_arg, esp_event_base_t event_
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG_ALIIOT, "TOPIC=%.*s\r\n", receivedData->topic_len, receivedData->topic);
         ESP_LOGI(TAG_ALIIOT, "DATA=%.*s\r\n", receivedData->data_len, receivedData->data);
-        if (strstr(receivedData->topic, "/user/get"))
+        if ((strstr(receivedData->topic, "/user/get")) || (strstr(receivedData->topic, "/property/set")))
         {
             cJSON *property_js = cJSON_Parse(receivedData->data);
             cJSON *params_js = cJSON_GetObjectItem(property_js, "params");
             if (params_js)
             {
-                cJSON *testing_js = cJSON_GetObjectItem(params_js, "Command_ECG");
-                if (testing_js)
+                cJSON *PPG_js = cJSON_GetObjectItem(params_js, "Command_PPG");
+                if (PPG_js)
                 {
-                    int value = cJSON_GetNumberValue(testing_js);
-                    ESP_LOGI(TAG_ALIIOT, "%d\n", value);
+                    int value = cJSON_GetNumberValue(PPG_js);
+                    if (value == 1)
+                    {
+
+                        spO2_cmd = 1;
+                    }
+                    else
+                    {
+                        spO2_cmd = 0;
+                    }
+                }
+                cJSON *Temp_js = cJSON_GetObjectItem(params_js, "Command_Temp");
+                if (Temp_js)
+                {
+                    int value = cJSON_GetNumberValue(Temp_js);
+                    if (value == 1)
+                    {
+
+                        temp_cmd = 1;
+                    }
+                    else
+                    {
+                        temp_cmd = 0;
+                    }
                 }
             }
             aliot_property_ack(200, "success");

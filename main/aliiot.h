@@ -10,6 +10,11 @@
 // MQTT域名
 #define ALIIOT_MQTT_URL "mqtts://iot-06z00gckmuw74xc.mqtt.iothub.aliyuncs.com"
 
+extern char temp_cmd;
+extern char spO2_cmd;
+extern char ECG_cmd;
+extern char GSR_cmd;
+
 void aliiot_start(void);
 char isAliiotConnected(void);
 
