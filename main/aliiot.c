@@ -138,6 +138,34 @@ void mqtt_aliiot_event_callback(void *event_handler_arg, esp_event_base_t event_
                         temp_cmd = 0;
                     }
                 }
+                cJSON *ECG_js = cJSON_GetObjectItem(params_js, "Command_ECG");
+                if (ECG_js)
+                {
+                    int value = cJSON_GetNumberValue(ECG_js);
+                    if (value == 1)
+                    {
+
+                        ECG_cmd = 1;
+                    }
+                    else
+                    {
+                        ECG_cmd = 0;
+                    }
+                }
+                cJSON *GSR_js = cJSON_GetObjectItem(params_js, "Command_GSR");
+                if (GSR_js)
+                {
+                    int value = cJSON_GetNumberValue(GSR_js);
+                    if (value == 1)
+                    {
+
+                        GSR_cmd = 1;
+                    }
+                    else
+                    {
+                        GSR_cmd = 0;
+                    }
+                }
             }
             aliot_property_ack(200, "success");
         }

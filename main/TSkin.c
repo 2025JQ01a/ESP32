@@ -23,7 +23,8 @@ GPIO38  ADC1_CH2
 GPIO39  ADC1_CH3
 */
 #define TEMP_ADC_CHANNEL ADC_CHANNEL_0 // ADC转换通道(ADC1有8个通道，对应gpio32 - gpio39)
-#define ECG_ADC_CHANNEL ADC_CHANNEL_3  // ADC转换通道(ADC1有8个通道，对应gpio32 - gpio39)
+#define ECG_ADC_CHANNEL ADC_CHANNEL_3
+#define GSR_ADC_CHANNEL ADC_CHANNEL_6
 
 #define NTC_RES 10000  // NTC电阻标称值(在电路中和NTC一起串进电路的那个电阻,一般是10K，100K)
 #define ADC_V_MAX 3300 // 最大接入电压值
@@ -33,6 +34,8 @@ GPIO39  ADC1_CH3
 static bool do_calibration1 = false; // 是否需要校准
 
 static volatile float s_temp_value = 0.0f; // 室内温度
+static int ECG_value;
+static int GSR_value;
 
 static int s_adc_raw[ADC_VALUE_NUM];     // ADC采样值
 static int s_voltage_raw[ADC_VALUE_NUM]; // 转换后的电压值
@@ -211,6 +214,8 @@ void temp_ntc_init(void)
         */
     };
     ESP_ERROR_CHECK(adc_oneshot_config_channel(s_adc_handle, TEMP_ADC_CHANNEL, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(s_adc_handle, ECG_ADC_CHANNEL, &config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(s_adc_handle, GSR_ADC_CHANNEL, &config));
     //-------------ADC1 Calibration Init---------------//
     do_calibration1 = example_adc_calibration_init(ADC_UNIT_1, ADC_ATTEN_DB_12, &adc1_cali_handle);
 
@@ -228,12 +233,24 @@ float get_temp(void)
     return s_temp_value;
 }
 
+int get_ECG(void)
+{
+    return ECG_value;
+}
+
+int get_GSR(void)
+{
+    return GSR_value;
+}
+
 static void temp_adc_task(void *param)
 {
     uint16_t adc_cnt = 0;
     while (1)
     {
-        adc_oneshot_read(s_adc_handle, ECG_ADC_CHANNEL, &s_adc_raw[adc_cnt]);
+        adc_oneshot_read(s_adc_handle, TEMP_ADC_CHANNEL, &s_adc_raw[adc_cnt]);
+        adc_oneshot_read(s_adc_handle, ECG_ADC_CHANNEL, &ECG_value);
+        adc_oneshot_read(s_adc_handle, GSR_ADC_CHANNEL, &GSR_value);
         if (do_calibration1)
         {
             adc_cali_raw_to_voltage(adc1_cali_handle, s_adc_raw[adc_cnt], &s_voltage_raw[adc_cnt]);

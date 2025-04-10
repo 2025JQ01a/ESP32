@@ -11,12 +11,9 @@
 #include "computeFFT.h"
 
 // for UART debugging, not used
-/*
-#define USER_UART UART_NUM_0
-#define TAG_UART "uart0"
+#define USER_UART UART_NUM_2
 static char bufUART[10];
 static QueueHandle_t queueUART;
-*/
 
 // debugging data
 uint32_t count = 0;
@@ -39,6 +36,8 @@ static char GSR_data[30];
 static float currentTemprature;
 static float spO2;
 static float spO2_recorded;
+static int ECG_value;
+static int GSR_value;
 
 void app_main(void)
 {
@@ -63,22 +62,20 @@ void app_main(void)
     */
 
     // for UART debugging, not used
-    /*
-        uart_event_t evUART;
-        int resultUART;
-        uart_config_t cfg_uart =
-            {
-                .baud_rate = 115200,
-                .data_bits = UART_DATA_8_BITS,
-                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-                .parity = UART_PARITY_DISABLE,
-                .source_clk = UART_SCLK_DEFAULT,
-                .stop_bits = UART_STOP_BITS_1,
-            };
-        uart_param_config(USER_UART, &cfg_uart);
-        uart_set_pin(USER_UART, GPIO_NUM_32, GPIO_NUM_33, -1, -1);
-        uart_driver_install(USER_UART, 1024, 1024, 20, &queueUART, 0);
-    */
+    uart_event_t evUART;
+    int resultUART;
+    uart_config_t cfg_uart =
+        {
+            .baud_rate = 115200,
+            .data_bits = UART_DATA_8_BITS,
+            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+            .parity = UART_PARITY_DISABLE,
+            .source_clk = UART_SCLK_DEFAULT,
+            .stop_bits = UART_STOP_BITS_1,
+        };
+    uart_param_config(USER_UART, &cfg_uart);
+    uart_set_pin(USER_UART, GPIO_NUM_32, GPIO_NUM_33, -1, -1);
+    uart_driver_install(USER_UART, 1024, 1024, 20, &queueUART, 0);
 
     temp_ntc_init();
 
@@ -98,9 +95,7 @@ void app_main(void)
         TickType_t xLastWakeTime = xTaskGetTickCount();
 
         // for UART debugging, not used
-        /*
-        uart_write_bytes(USER_UART, bufUART, 100);
-        */
+        uart_write_bytes(USER_UART, temp_data, 100);
 
         if (temp_cmd)
         {
@@ -108,10 +103,27 @@ void app_main(void)
         }
         else
         {
-            currentTemprature = 0;
+            currentTemprature = -1;
         }
         snprintf(temp_data, sizeof(temp_data), "%f\n", currentTemprature);
-
+        if (ECG_cmd)
+        {
+            ECG_value = get_ECG();
+        }
+        else
+        {
+            ECG_value = -1;
+        }
+        snprintf(ECG_data, sizeof(ECG_data), "%d\n", ECG_value);
+        if (GSR_cmd)
+        {
+            GSR_value = get_GSR();
+        }
+        else
+        {
+            GSR_value = -1;
+        }
+        snprintf(GSR_data, sizeof(GSR_data), "%d\n", GSR_value);
         if (spO2_cmd)
         {
             spO2 = max30102_getSpO2();
@@ -133,19 +145,25 @@ void app_main(void)
             {
                 aliot_post_property_double("Value_PPG", spO2_recorded);
             }
-            if (currentTemprature != 0)
+            if (currentTemprature != -1)
             {
                 aliot_post_property_double("Value_Temp", currentTemprature);
+            }
+            if (ECG_value != -1)
+            {
+                aliot_post_property_int("Value_ECG", ECG_value);
+            }
+            if (GSR_value != -1)
+            {
+                aliot_post_property_int("Value_GSR", GSR_value);
             }
 
             counter_transmit = 0;
         }
 
         counter_transmit++;
-        vTaskDelayUntil(&xLastWakeTime, 5);
 
         // for UART debugging, not used
-        /*
         if (xQueueReceive(queueUART, &evUART, 1) == pdTRUE)
         {
 
@@ -154,7 +172,7 @@ void app_main(void)
 
             case UART_DATA:
 
-                ESP_LOGI(TAG_UART, "UART0 Receive length: %i", evUART.size);
+                ESP_LOGI(TAG_MAIN, "UART0 Receive length: %i", evUART.size);
                 uart_read_bytes(USER_UART, bufUART, evUART.size, pdMS_TO_TICKS(1000));
                 uart_write_bytes(USER_UART, bufUART, evUART.size);
                 break;
@@ -172,6 +190,7 @@ void app_main(void)
                 break;
             }
         }
-        */
+
+        vTaskDelayUntil(&xLastWakeTime, 5);
     }
 }
