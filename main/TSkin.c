@@ -248,6 +248,8 @@ static void temp_adc_task(void *param)
     uint16_t adc_cnt = 0;
     while (1)
     {
+        TickType_t xLastWakeTime = xTaskGetTickCount();
+
         adc_oneshot_read(s_adc_handle, TEMP_ADC_CHANNEL, &s_adc_raw[adc_cnt]);
         adc_oneshot_read(s_adc_handle, ECG_ADC_CHANNEL, &ECG_value);
         adc_oneshot_read(s_adc_handle, GSR_ADC_CHANNEL, &GSR_value);
@@ -279,7 +281,7 @@ static void temp_adc_task(void *param)
             adc_cnt = 0;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelayUntil(&xLastWakeTime, 5);
     }
 }
 

@@ -12,7 +12,7 @@
 
 // for UART debugging, not used
 #define USER_UART UART_NUM_2
-static char bufUART[10];
+// static char bufUART[10];
 static QueueHandle_t queueUART;
 
 // debugging data
@@ -95,7 +95,7 @@ void app_main(void)
         TickType_t xLastWakeTime = xTaskGetTickCount();
 
         // for UART debugging, not used
-        uart_write_bytes(USER_UART, temp_data, 100);
+        uart_write_bytes(USER_UART, ECG_data, 30);
 
         if (temp_cmd)
         {
@@ -136,7 +136,7 @@ void app_main(void)
         {
             spO2_recorded = spO2;
         }
-        snprintf(spO2_data, sizeof(spO2_data), "%.2f\n", spO2);
+        snprintf(spO2_data, sizeof(spO2_data), "%.2f\n", spO2_recorded);
 
         if (isAliiotConnected() && (counter_transmit >= 400))
         {
@@ -164,6 +164,7 @@ void app_main(void)
         counter_transmit++;
 
         // for UART debugging, not used
+        /*
         if (xQueueReceive(queueUART, &evUART, 1) == pdTRUE)
         {
 
@@ -190,7 +191,7 @@ void app_main(void)
                 break;
             }
         }
-
+        */
         vTaskDelayUntil(&xLastWakeTime, 5);
     }
 }
